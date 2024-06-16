@@ -8,6 +8,8 @@ from scipy.spatial.transform import Rotation
 class Transform:
     """
     Helper class for SE3 transforms
+
+    from robot_utils.spatial.transform import Transform
     """
     def __init__(self, translation=np.zeros((3,)), rotation=Rotation.from_quat([0, 0, 0, 1])):
         """
