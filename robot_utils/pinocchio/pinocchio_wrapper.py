@@ -52,11 +52,9 @@ class PinWrapper:
         self.joints_unlimited = []
         self.joints_pin_indices = []
         for joint in self.model.joints:
-            self.joints_pin_indices.append(joint.idx_q)
-            if joint.nq == 2:   # rotational joint doesn't have positional limit
-                self.joints_unlimited.append(True)
-            else:               # joint.nq == 1; joint has positional limits
-                self.joints_unlimited.append(False)
+            if self.model.njoints > joint.id >= 0:
+                self.joints_pin_indices.append(joint.idx_q)
+                self.joints_unlimited.append(joint.nq == 2)
 
     def forward_kinematics(self, q, frame=None):
         """Computes the homogenous transform at the specified joint for the given joint configuration.
