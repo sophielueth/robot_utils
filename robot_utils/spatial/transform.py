@@ -39,6 +39,12 @@ class Transform:
     def to_pos_quat(self):
         return self._translation, self._rotation.as_quat()
     
+    def get_rotation(self):
+        return self._rotation
+
+    def get_translation(self):
+        return self._translation
+
     def set_rotation(self, rotation):
         """
         Args:
