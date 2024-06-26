@@ -34,7 +34,7 @@ class Transform:
         Args:
             matrix (np.array of shape (4,4)): Homogenous Transformation Matrix
         """
-        return Transform(translation=matrix[:3, 3], rotation=Rotation.from_matrix[:3, :3])
+        return Transform(translation=matrix[:3, 3], rotation=Rotation.from_matrix(matrix[:3, :3]))
 
     def to_pos_quat(self):
         return self._translation, self._rotation.as_quat()
