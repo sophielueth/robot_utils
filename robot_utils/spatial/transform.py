@@ -21,7 +21,7 @@ class Transform:
         self._rotation = rotation
 
         self._matrix = np.eye(4)
-        self._matrix[:3,:3] = rotation.as_matrix()
+        self._matrix[:3, :3] = rotation.as_matrix()
         self._matrix[:3, 3] = translation
 
     def to_matrix(self):
@@ -34,7 +34,7 @@ class Transform:
         Args:
             matrix (np.array of shape (4,4)): Homogenous Transformation Matrix
         """
-        return Transform(translation=matrix[:3, 3], rotation=Rotation.from_matrix(matrix[:3, :3]))
+        return cls(translation=matrix[:3, 3], rotation=Rotation.from_matrix(matrix[:3, :3]))
 
     def to_pos_quat(self):
         return self._translation, self._rotation.as_quat()
