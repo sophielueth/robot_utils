@@ -3,6 +3,7 @@
 
 import numpy as np
 import pinocchio as pin
+from copy import deepcopy
 
 from scipy.spatial.transform import Rotation
 from robot_utils.spatial.transform import Transform
@@ -123,11 +124,10 @@ class PinWrapper:
         return joint_id
 
     def forward_kinematics(self, q, frame=None, frame_id=None, pin_conf=False, pin_se3=True):
-        # TODO: To be tested
         """Computes the homogenous transform at the specified joint for the given joint configuration.
 
         Args:
-            q (np.ndarray of shape (model.nv,) or (11,)): joint configuration to compute forward kinematics for in rad
+            q (np.ndarray of shape (model.nv,) ): joint configuration to compute forward kinematics for in rad
             frame (str): name of the frame to compute the transform for
             frame_id (int): pinocchio frame id of the frame to compute the transform for
             pin_conf (bool): boolean indicating whether jont configuration given in pinocchio format (True) or not (False)
@@ -150,7 +150,7 @@ class PinWrapper:
         else:
             q_pin = q
         if not np.all(q_pin == self.q_last_fk):
-            self.q_last_fk = q_pin
+            self.q_last_fk = deepcopy(q_pin)
             pin.framesForwardKinematics(self.model, self.data, q_pin)
 
         transform = self.data.oMf[int(frame_id)]
@@ -158,6 +158,8 @@ class PinWrapper:
             return transform
         else:
             return Transform(translation=transform.translation, rotation=Rotation.from_matrix(transform.rotation))
+
+    # TODO: add forward_kinematics time deravative
 
     def inverse_kinematics(self, des_trans, q=None, frame=None, pos_threshold=0.005, angle_threshold=5. * np.pi / 180,
                            n_trials=7, dt=0.1):
@@ -304,7 +306,6 @@ class PinWrapper:
         return self.data.g
 
     def jacobian(self, q, frame=None, frame_id=None, pin_conf=False):
-        # TODO: test
         """
         computes Jacobian for given joint configuration for a given Frame; optimized for frequent calls with same q
 
@@ -331,7 +332,7 @@ class PinWrapper:
             q_pin = q
 
         if not np.all(q_pin == self.q_last_jac):
-            self.q_last_jac = q_pin
+            self.q_last_jac = deepcopy(q_pin)
             pin.computeJointJacobians(self.model, self.data, q_pin)
 
         jac = pin.getFrameJacobian(self.model, self.data, int(frame_id), pin.WORLD)
@@ -360,7 +361,6 @@ class PinWrapper:
         return pin.getFrameJacobianTimeVariation(self.model, self.data, frame_id, pin.WORLD)
 
     def to_q_pin(self, q=None, q_dot=None, q_dotdot=None):
-        # TODO: test
         """transforms given (model.nv,) shape np.ndarrays to pinocchio internal compatible shape
 
         Args:
@@ -398,7 +398,6 @@ class PinWrapper:
             return res[0]
 
     def from_q_pin(self, q_pin):
-        # TODO: test
         """transforms given joint configuration (model.nq,) shape np.ndarray from pinocchio internal compatible shape to human-readable (model.nv) shape
 
         Args:
