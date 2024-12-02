@@ -6,7 +6,7 @@ import pinocchio as pin
 from copy import deepcopy
 
 from scipy.spatial.transform import Rotation
-from robot_utils.spatial.transform import Transform
+# from robot_utils.spatial.transform import Transform
 
 
 def damped_pseudo_inverse(J, damp=1e-10):
@@ -123,15 +123,17 @@ class PinWrapper:
 
         return joint_id
 
-    def forward_kinematics(self, q, frame=None, frame_id=None, pin_conf=False, pin_se3=True):
+    def forward_kinematics(self, q, frame=None, frame_id=None, pin_conf=False, pin_se3=True, update=False):
         """Computes the homogenous transform at the specified joint for the given joint configuration.
 
         Args:
             q (np.ndarray of shape (model.nv,) ): joint configuration to compute forward kinematics for in rad
             frame (str): name of the frame to compute the transform for
-            frame_id (int): pinocchio frame id of the frame to compute the transform for
-            pin_conf (bool): boolean indicating whether jont configuration given in pinocchio format (True) or not (False)
-            pin_se3 (bool): boolean indicating whether to return result as pin.SE3 (True) or Transform (False)
+            frame_id (int): pinocchio frame id of the frame to compute the transform for, if used, frame will be ignored
+            pin_conf (bool): whether joint configuration given in pinocchio format (True) or not (False)
+            pin_se3 (bool): whether to return result as pin.SE3 (True) or Transform (False)
+            update (bool): whether to recalculate forward kinematics anyway, even if same input q as before;
+                           e.g. after model update
 
         Return:
             pin.SE3/Transform: homogenous transform at the end-effector, type depends on pin_se3 parameter
@@ -149,7 +151,7 @@ class PinWrapper:
             q_pin = self.to_q_pin(q)
         else:
             q_pin = q
-        if not np.all(q_pin == self.q_last_fk):
+        if update or not np.all(q_pin == self.q_last_fk):
             self.q_last_fk = deepcopy(q_pin)
             pin.framesForwardKinematics(self.model, self.data, q_pin)
 
@@ -305,7 +307,7 @@ class PinWrapper:
         pin.computeGeneralizedGravity(self.model, self.data, q_pin)
         return self.data.g
 
-    def jacobian(self, q, frame=None, frame_id=None, pin_conf=False):
+    def jacobian(self, q, frame=None, frame_id=None, pin_conf=False, update=False):
         """
         computes Jacobian for given joint configuration for a given Frame; optimized for frequent calls with same q
 
@@ -313,7 +315,9 @@ class PinWrapper:
             q (np.ndarray of shape (model.nv,)): joint configuration
             frame (str): The frame to compute the Jacobian for
             frame_id (int): pinocchio frame id of the frame to compute the transform for
-            pin_conf (bool): boolean indicating whether jont configuration given in pinocchio format (True) or not (False)
+            pin_conf (bool): whether jont configuration given in pinocchio format (True) or not (False)
+            update (bool): whether to recalculate forward kinematics anyway, even if same input q as before;
+                           e.g. after model update
 
         Returns:
             np.ndarray of shape (6,model.nv)
@@ -331,7 +335,7 @@ class PinWrapper:
         else:
             q_pin = q
 
-        if not np.all(q_pin == self.q_last_jac):
+        if not np.all(q_pin == self.q_last_jac) or update:
             self.q_last_jac = deepcopy(q_pin)
             pin.computeJointJacobians(self.model, self.data, q_pin)
 
