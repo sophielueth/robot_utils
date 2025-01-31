@@ -339,7 +339,7 @@ class PinWrapper:
             self.q_last_jac = deepcopy(q_pin)
             pin.computeJointJacobians(self.model, self.data, q_pin)
 
-        jac = pin.getFrameJacobian(self.model, self.data, int(frame_id), pin.WORLD)
+        jac = pin.getFrameJacobian(self.model, self.data, int(frame_id), pin.LOCAL_WORLD_ALIGNED)
 
         return jac
 
@@ -362,7 +362,7 @@ class PinWrapper:
         q_pin, q_dot_pin = self.to_q_pin(q, q_dot)
 
         pin.computeJointJacobiansTimeVariation(self.model, self.data, q_pin, q_dot_pin)
-        return pin.getFrameJacobianTimeVariation(self.model, self.data, frame_id, pin.WORLD)
+        return pin.getFrameJacobianTimeVariation(self.model, self.data, frame_id, pin.LOCAL_WORLD_ALIGNED)
 
     def to_q_pin(self, q=None, q_dot=None, q_dotdot=None):
         """transforms given (model.nv,) shape np.ndarrays to pinocchio internal compatible shape
