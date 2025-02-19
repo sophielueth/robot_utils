@@ -6,7 +6,7 @@ import pinocchio as pin
 from copy import deepcopy
 
 from scipy.spatial.transform import Rotation
-# from robot_utils.spatial.transform import Transform
+from robot_utils.spatial.transform import Transform
 
 
 def damped_pseudo_inverse(J, damp=1e-10):
@@ -88,6 +88,7 @@ class PinWrapper:
 
         # =============================================== SETUP DATA ================================================ #
         self.data = self.model.createData()  # for algorithmic buffering
+        self.data_full = self.model_full.createData()  # for algorithmic buffering
         self.ee_frame_name = tool_frame
         assert self.model.existFrame(self.ee_frame_name)
 
@@ -138,13 +139,12 @@ class PinWrapper:
         Return:
             pin.SE3/Transform: homogenous transform at the end-effector, type depends on pin_se3 parameter
         """
-        if frame_id is not None and frame is not None:
-            print('Please only enter frame name OR frame_id into the forward kinematics function!')
-            exit(0)
         
         if frame_id is None:
             if frame is None:
                 frame = self.ee_frame_name
+            else:
+                assert self.model.existFrame(frame)
             frame_id = self.model.getFrameId(frame)
 
         if not pin_conf:
@@ -163,14 +163,15 @@ class PinWrapper:
 
     # TODO: add forward_kinematics time deravative
 
-    def inverse_kinematics(self, des_trans, q=None, frame=None, pos_threshold=0.005, angle_threshold=5. * np.pi / 180,
+    def inverse_kinematics(self, des_trans, q=None, frame=None, frame_id=None, pos_threshold=0.005, angle_threshold=5. * np.pi / 180,
                            n_trials=7, dt=0.1):
         """Get IK joint configuration for desired pose of specified joint frame.
 
         Args:
             des_trans (Transform): desired frame transform for the frame specified via joint_ind
             q (np.ndarray of shape (model.nv,)): joint start configuration in rad, if applicable
-            frame (str): name of the frame that is des_trans 
+            frame (str): name of the frame for which the des_trans is given
+            frame_id (int): pinocchio frame id of the frame to compute the transform for, if used, frame will be ignored
             pos_threshold (float): in m 
             angle_threshold (float): in rad
             n_trials (int):
@@ -187,6 +188,8 @@ class PinWrapper:
 
         if frame is None:
             frame = self.ee_frame_name
+        else:
+            assert self.model.existFrame(frame)
 
         oMdes = pin.SE3(des_trans.to_matrix())
         frame_id = self.model.getFrameId(frame)
@@ -314,7 +317,7 @@ class PinWrapper:
         Args:
             q (np.ndarray of shape (model.nv,)): joint configuration
             frame (str): The frame to compute the Jacobian for
-            frame_id (int): pinocchio frame id of the frame to compute the transform for
+            frame_id (int): pinocchio frame id of the frame to compute the transform for, if used, frame will be ignored
             pin_conf (bool): whether jont configuration given in pinocchio format (True) or not (False)
             update (bool): whether to recalculate forward kinematics anyway, even if same input q as before;
                            e.g. after model update
@@ -322,13 +325,12 @@ class PinWrapper:
         Returns:
             np.ndarray of shape (6,model.nv)
         """
-        if frame_id is not None and frame is not None:
-            print('Please only enter frame name OR frame_id into the jacobian function!')
-            exit(0)
 
         if frame_id is None:
             if frame is None:
                 frame = self.ee_frame_name
+            else:
+                assert self.model.existFrame(frame)
             frame_id = self.model.getFrameId(frame)
         if not pin_conf:
             q_pin = self.to_q_pin(q)
@@ -343,7 +345,7 @@ class PinWrapper:
 
         return jac
 
-    def jacobian_dot(self, q, q_dot, frame=None):
+    def jacobian_dot(self, q, q_dot, frame=None, frame_id=None):
         # TODO: test (dimensions?)
         """returns dJ/dt, with J being the Jacobian Matrix
 
@@ -351,13 +353,17 @@ class PinWrapper:
             q (np.ndarray of shape (model.nv,)):
             q_dot (np.ndarray of shape (model.nv,)):
             frame (str): frame to compute jacobian_dot for; if None, takes End-effector
+            frame_id (int): pinocchio frame id of the frame to compute the transform for, if used, frame will be ignored
 
         Returns:
             np.ndarray of shape (6, model.nv): the time derivative of the Jacobian
         """
-        if frame is None:
-            frame = self.ee_frame_name
-        frame_id = self.model.getFrameId(frame)
+        if frame_id is None:
+            if frame is None:
+                frame = self.ee_frame_name
+            else:
+                assert self.model.existFrame(frame)
+            frame_id = self.model.getFrameId(frame)
 
         q_pin, q_dot_pin = self.to_q_pin(q, q_dot)
 
